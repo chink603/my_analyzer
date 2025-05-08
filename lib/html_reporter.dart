@@ -96,8 +96,73 @@ class HtmlReporter {
         '<div id="active-file-display" class="mt-3 text-sm font-medium text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-800/50 p-2.5 rounded-md">Select a file to view details.</div>');
     buffer.writeln('</header>');
     // Iframe to display content of individual files
+       // --- START DASHBOARD SECTION ---
+    buffer.writeln('<section id="dashboard" class="mb-8">');
+    buffer.writeln('<h3 class="text-2xl font-semibold text-slate-800 dark:text-slate-200 mb-4">Dashboard Summary</h3>');
+    
+    // Summary Cards
+    buffer.writeln('<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">');
+    buffer.writeln('''
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md border border-slate-200 dark:border-slate-700">
+            <div class="text-sm font-medium text-slate-500 dark:text-slate-400">Files Analyzed</div>
+            <div class="text-3xl font-bold text-sky-600 dark:text-sky-400 mt-1">${projectResult.fileResults.length}</div>
+        </div>
+    ''');
+    buffer.writeln('''
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md border border-slate-200 dark:border-slate-700">
+            <div class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Issues Found</div>
+            <div class="text-3xl font-bold ${projectResult.totalIssues > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'} mt-1">${projectResult.totalIssues}</div>
+        </div>
+    ''');
+    // Add more cards here if needed (e.g., Average CC, Avg CogC - requires more calculation)
+    buffer.writeln('</div>'); // End grid
+
+    // Files with Most Issues Table
+    final topFiles = projectResult.filesSortedByIssues.take(10).toList(); // Show top 10
+    if (topFiles.isNotEmpty) {
+        buffer.writeln('<h4 class="text-xl font-semibold text-slate-700 dark:text-slate-300 mb-3">Files with Most Issues</h4>');
+        buffer.writeln('<div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md">');
+        buffer.writeln('<table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">');
+        buffer.writeln('<thead class="bg-slate-100 dark:bg-slate-700/50"><tr>');
+        buffer.writeln('<th scope="col" class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300 tracking-wider">File Path</th>');
+        buffer.writeln('<th scope="col" class="px-3 py-3 text-center font-semibold text-slate-700 dark:text-slate-300 tracking-wider">Issue Count</th>');
+        buffer.writeln('<th scope="col" class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300 tracking-wider">Action</th>');
+        buffer.writeln('</tr></thead>');
+        buffer.writeln('<tbody class="divide-y divide-slate-200 dark:divide-slate-700">');
+
+        for (final fileInfo in topFiles) {
+            final fileResult = fileInfo['file'] as FileAnalysisResult;
+            final issueCount = fileInfo['issueCount'] as int;
+            final relativePath = p.relative(fileResult.filePath, from: projectResult.directoryPath);
+            final outputRelativeHtmlPath = p.setExtension(relativePath, '.html');
+            final href = p.join(reportsSubDirName, outputRelativeHtmlPath).replaceAll(r'\', '/');
+
+            buffer.writeln('<tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">');
+            buffer.writeln('<td class="px-4 py-2.5 whitespace-nowrap font-medium text-slate-800 dark:text-slate-200">${_escapeHtml(relativePath)}</td>');
+            buffer.writeln('<td class="px-3 py-2.5 text-center font-semibold ${issueCount > 5 ? 'text-red-600 dark:text-red-400' : (issueCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400')}">$issueCount</td>');
+            buffer.writeln('<td class="px-4 py-2.5 text-center">');
+            // This link works the same way as the sidebar links
+            buffer.writeln(
+                '<a href="${_escapeHtml(href)}" target="content-frame" data-type="file-link" data-filepath="${_escapeHtml(relativePath)}" class="inline-block bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold px-3 py-1 rounded-md shadow-sm transition-colors">View Details</a>');
+            buffer.writeln('</td></tr>');
+        }
+
+        buffer.writeln('</tbody></table></div>');
+    } else if (projectResult.fileResults.isNotEmpty) {
+         buffer.writeln('<p class="text-green-600 dark:text-green-400 font-medium">🎉 No issues found in any analyzed files!</p>');
+    }
+
+    buffer.writeln('</section>');
+    // --- END DASHBOARD SECTION ---
+
+    // --- Iframe Section (remains the same) ---
+    buffer.writeln('<hr class="border-slate-300 dark:border-slate-600 my-6">'); // Separator
     buffer.writeln(
-        '<iframe id="content-frame" name="content-frame" class="w-full h-[calc(100vh-180px)] border-0 rounded-lg shadow-inner bg-white dark:bg-slate-800" srcdoc="<p class=\'p-6 text-slate-500 dark:text-slate-400\'>Select a file from the explorer to view details.</p>"></iframe>');
+        '<div id="active-file-display" class="mb-3 text-sm font-medium text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-800/50 p-2.5 rounded-md">Select a file to view details.</div>');
+    buffer.writeln(
+        '<iframe id="content-frame" name="content-frame" class="w-full h-[calc(100vh-280px)] border border-slate-300 dark:border-slate-700 rounded-lg shadow-inner bg-white dark:bg-slate-800" srcdoc="<p class=\'p-6 text-slate-500 dark:text-slate-400\'>Select a file from the explorer or dashboard.</p>"></iframe>'); // Adjusted height slightly
+    // --- End Iframe Section ---
+
     buffer.writeln('</main></div>');
     _writeHtmlFooter(buffer);
     await File(mainFilePath).writeAsString(buffer.toString());

@@ -86,7 +86,7 @@ class FileAnalysisResult {
 }
 
 class ProjectAnalysisResult {
-  final String directoryPath;
+ final String directoryPath;
   final List<FileAnalysisResult> fileResults = [];
 
   ProjectAnalysisResult({required this.directoryPath});
@@ -94,4 +94,46 @@ class ProjectAnalysisResult {
   void addFileResult(FileAnalysisResult result) {
     fileResults.add(result);
   }
+
+  // --- NEW GETTERS for Dashboard ---
+
+  // Calculate total issues across all files
+  int get totalIssues {
+    int count = 0;
+    for (final fileResult in fileResults) {
+      count += fileResult.fileLevelIssues.length;
+      for (final classMetric in fileResult.classes) {
+        count += classMetric.issues.length; // Class-level issues (if any)
+        for (final methodMetric in classMetric.methods) {
+          count += methodMetric.issues.length;
+        }
+      }
+      for (final funcMetric in fileResult.functions) {
+        count += funcMetric.issues.length;
+      }
+    }
+    return count;
+  }
+
+  // Get a list of FileAnalysisResult sorted by total issue count (descending)
+  // We might want to store issue count per file to avoid recalculating
+  List<Map<String, dynamic>> get filesSortedByIssues {
+      var filesWithCounts = fileResults.map((fileResult) {
+          int count = fileResult.fileLevelIssues.length;
+          count += fileResult.classes.fold<int>(0, (prevClass, c) =>
+              prevClass + c.issues.length + c.methods.fold<int>(0, (prevMethod, m) =>
+                  prevMethod + m.issues.length
+              )
+          );
+          count += fileResult.functions.fold<int>(0, (prevFunc, f) => prevFunc + f.issues.length);
+          return {'file': fileResult, 'issueCount': count};
+      }).toList();
+
+      // Filter out files with 0 issues and sort descending by issue count
+      filesWithCounts.removeWhere((item) => item['issueCount'] == 0);
+      filesWithCounts.sort((a, b) => (b['issueCount'] as int).compareTo(a['issueCount'] as int));
+      
+      return filesWithCounts;
+  }
+
 }
