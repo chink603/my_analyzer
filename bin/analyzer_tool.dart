@@ -4,9 +4,7 @@ import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
 // Adjust these imports based on your package name in pubspec.yaml
-import 'package:my_analyzer/code_analyzer.dart';
-import 'package:my_analyzer/html_reporter.dart';
-import 'package:my_analyzer/models.dart';
+import 'package:my_analyzer/my_analyzer.dart';
 
 Future<void> main(List<String> arguments) async {
   final parser = ArgParser()
