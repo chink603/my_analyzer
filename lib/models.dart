@@ -1,6 +1,4 @@
 // lib/models.dart
-import 'dart:math'; // Used for sorting/aggregating if needed later, not strictly necessary for current getters
-
 class Issue {
   final String message;
   final String suggestion;
